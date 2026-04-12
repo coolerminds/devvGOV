@@ -1,0 +1,58 @@
+package gov.usds.ecfr;
+
+import java.util.List;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+@RestController
+@RequestMapping("/api")
+class EcfrController {
+  private final EcfrRepository repository;
+  private final ImportService importService;
+
+  EcfrController(EcfrRepository repository, ImportService importService) {
+    this.repository = repository;
+    this.importService = importService;
+  }
+
+  @GetMapping("/agencies")
+  List<AgencySummary> agencies() {
+    return repository.findAgencies();
+  }
+
+  @GetMapping("/overview/history")
+  List<AgencyHistorySeries> historyOverview() {
+    return repository.findAgencyHistoryOverview();
+  }
+
+  @GetMapping("/agencies/{slug}")
+  AgencyDetail agency(@PathVariable String slug) {
+    var agency = repository.findAgency(slug);
+    if (agency == null) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Agency not found");
+    }
+    return agency;
+  }
+
+  @PostMapping("/topics/{id}/view")
+  Map<String, Integer> topicView(@PathVariable long id) {
+    try {
+      return Map.of("viewCount", repository.incrementTopicView(id));
+    } catch (IllegalArgumentException exception) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+  }
+
+  @PostMapping("/admin/import")
+  @ResponseStatus(HttpStatus.ACCEPTED)
+  ImportSummary reimport() {
+    return importService.importAll();
+  }
+}

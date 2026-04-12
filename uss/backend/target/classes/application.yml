@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/ecfr}
+    username: ${DB_USER:ecfr}
+    password: ${DB_PASSWORD:ecfr}
+  jackson:
+    default-property-inclusion: non_null
+app:
+  bootstrap-import: ${BOOTSTRAP_IMPORT:true}
+
