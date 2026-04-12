@@ -353,7 +353,7 @@ function NewAnalysisModal({
   if (!open) return null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose} role="presentation">
+    <div className="modal-backdrop" onClick={importing ? undefined : onClose} role="presentation">
       <section className="modal-panel" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="new-analysis-title">
         <div className="modal-header">
           <div>
@@ -361,7 +361,7 @@ function NewAnalysisModal({
             <h2 id="new-analysis-title">Add or refresh agencies</h2>
             <p className="panel-copy">Search the live eCFR agency catalog, select multiple agencies, and import them into this workspace. Imports can take a moment.</p>
           </div>
-          <button className="modal-close" onClick={onClose} type="button" aria-label="Close new analysis">
+          <button className="modal-close" onClick={onClose} type="button" aria-label="Close new analysis" disabled={importing}>
             Close
           </button>
         </div>
@@ -369,7 +369,7 @@ function NewAnalysisModal({
         <div className="modal-tools">
           <label className="modal-search">
             <span>Search agencies</span>
-            <input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Search by agency, short name, or slug" />
+            <input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Search by agency, short name, or slug" disabled={importing} />
           </label>
           <div className="modal-tools-right">
             <div className="modal-counts">
@@ -377,10 +377,10 @@ function NewAnalysisModal({
               <span>{selectedSlugs.length} selected</span>
             </div>
             <div className="modal-batch-actions">
-              <button className="text-action" onClick={() => onSelectVisible(visibleSlugs)} type="button" disabled={!visibleCandidates.length || allVisibleSelected}>
+              <button className="text-action" onClick={() => onSelectVisible(visibleSlugs)} type="button" disabled={importing || !visibleCandidates.length || allVisibleSelected}>
                 Select visible
               </button>
-              <button className="text-action" onClick={onClearSelection} type="button" disabled={!selectedSlugs.length}>
+              <button className="text-action" onClick={onClearSelection} type="button" disabled={importing || !selectedSlugs.length}>
                 Clear
               </button>
             </div>
@@ -390,7 +390,7 @@ function NewAnalysisModal({
         {!!selectedEntries.length && (
           <div className="selected-strip">
             {selectedEntries.map((entry) => (
-              <button className="selected-chip" key={entry.slug} onClick={() => onToggle(entry.slug)} type="button">
+              <button className="selected-chip" key={entry.slug} onClick={() => onToggle(entry.slug)} type="button" disabled={importing}>
                 {entry.name}
               </button>
             ))}
@@ -404,7 +404,7 @@ function NewAnalysisModal({
             visibleCandidates.map((candidate) => {
               const selected = selectedSlugs.includes(candidate.slug);
               return (
-                <button className={`candidate-row ${selected ? "selected" : ""}`} key={candidate.slug} onClick={() => onToggle(candidate.slug)} type="button">
+                <button className={`candidate-row ${selected ? "selected" : ""}`} key={candidate.slug} onClick={() => onToggle(candidate.slug)} type="button" disabled={importing}>
                   <div className="candidate-copy">
                     <strong>{candidate.name}</strong>
                     <small>{candidate.shortName ? `${candidate.shortName} · ${candidate.slug}` : candidate.slug}</small>
@@ -425,7 +425,7 @@ function NewAnalysisModal({
 
         <div className="modal-actions">
           {!!feedback && <p className="modal-feedback">{feedback}</p>}
-          <button className="ghost-action" onClick={onClose} type="button">
+          <button className="ghost-action" onClick={onClose} type="button" disabled={importing}>
             Cancel
           </button>
           <button className="primary-action" onClick={onSubmit} type="button" disabled={!selectedSlugs.length || importing}>

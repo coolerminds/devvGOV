@@ -973,6 +973,14 @@ dd {
   cursor: pointer;
 }
 
+.modal-close:disabled,
+.selected-chip:disabled,
+.candidate-row:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .modal-tools {
   margin-top: 1.25rem;
   align-items: end;

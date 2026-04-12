@@ -64,9 +64,9 @@ test("renders dashboard, opens topics, and imports agencies through new analysis
     { slug: agriculture.slug, name: agriculture.name, shortName: "USDA", imported: true },
     { slug: environmental.slug, name: environmental.name, shortName: "EPA", imported: false },
   ];
-  let resolveImport: ((value: Response) => void) | null = null;
+  const importController: { resolve?: (value: Response) => void } = {};
   const importRequest = new Promise<Response>((resolve) => {
-    resolveImport = resolve;
+    importController.resolve = resolve;
   });
 
   vi.spyOn(globalThis, "fetch").mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
@@ -129,9 +129,13 @@ test("renders dashboard, opens topics, and imports agencies through new analysis
 
   expect(await screen.findByRole("status", { name: /Importing selected agencies/i })).toBeInTheDocument();
   expect(screen.getByText("Building your new analysis workspace")).toBeInTheDocument();
-  expect(screen.getByText("Environmental Protection Agency")).toBeInTheDocument();
+  expect(await screen.findAllByText("Environmental Protection Agency")).not.toHaveLength(0);
 
-  resolveImport?.(new Response(JSON.stringify({ agencies: 1, topics: 1 })));
+  const completeImport = importController.resolve;
+  if (!completeImport) {
+    throw new Error("Import resolver was not initialized");
+  }
+  completeImport(new Response(JSON.stringify({ agencies: 1, topics: 1 })));
 
   await waitFor(() => expect(screen.queryByRole("dialog", { name: /Add or refresh agencies/i })).not.toBeInTheDocument());
   await waitFor(() => expect(screen.queryByRole("status", { name: /Importing selected agencies/i })).not.toBeInTheDocument());
