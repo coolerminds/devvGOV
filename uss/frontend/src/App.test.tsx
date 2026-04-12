@@ -64,6 +64,10 @@ test("renders dashboard, opens topics, and imports agencies through new analysis
     { slug: agriculture.slug, name: agriculture.name, shortName: "USDA", imported: true },
     { slug: environmental.slug, name: environmental.name, shortName: "EPA", imported: false },
   ];
+  let resolveImport: ((value: Response) => void) | null = null;
+  const importRequest = new Promise<Response>((resolve) => {
+    resolveImport = resolve;
+  });
 
   vi.spyOn(globalThis, "fetch").mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
@@ -99,7 +103,7 @@ test("renders dashboard, opens topics, and imports agencies through new analysis
         { slug: agriculture.slug, name: agriculture.name, shortName: "USDA", imported: true },
         { slug: environmental.slug, name: environmental.name, shortName: "EPA", imported: true },
       ];
-      return Promise.resolve(new Response(JSON.stringify({ agencies: 1, topics: 1 })));
+      return importRequest;
     }
     throw new Error(`Unhandled fetch ${url}`);
   });
@@ -123,6 +127,13 @@ test("renders dashboard, opens topics, and imports agencies through new analysis
   fireEvent.click(screen.getByRole("button", { name: /Environmental Protection Agency/i }));
   fireEvent.click(screen.getByRole("button", { name: /^Import 1$/i }));
 
+  expect(await screen.findByRole("status", { name: /Importing selected agencies/i })).toBeInTheDocument();
+  expect(screen.getByText("Building your new analysis workspace")).toBeInTheDocument();
+  expect(screen.getByText("Environmental Protection Agency")).toBeInTheDocument();
+
+  resolveImport?.(new Response(JSON.stringify({ agencies: 1, topics: 1 })));
+
   await waitFor(() => expect(screen.queryByRole("dialog", { name: /Add or refresh agencies/i })).not.toBeInTheDocument());
+  await waitFor(() => expect(screen.queryByRole("status", { name: /Importing selected agencies/i })).not.toBeInTheDocument());
   expect(await screen.findAllByRole("button", { name: /Environmental Protection Agency/i })).not.toHaveLength(0);
 });
