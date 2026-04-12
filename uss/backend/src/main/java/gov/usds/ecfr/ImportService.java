@@ -71,6 +71,7 @@ class ImportService {
       var refs = flattenRefs(agency);
       var history = new HashMap<LocalDate, MonthlyCount>();
       var checksums = new ArrayList<String>();
+      var agencyTopics = new ArrayList<EcfrRepository.AgencyTopicRow>();
       var latestAmendedOn = (LocalDate) null;
       var wordCount = 0;
 
@@ -90,7 +91,7 @@ class ImportService {
           latestAmendedOn = snapshot.latestAmendedOn();
         }
         snapshot.history().forEach((month, count) -> history.merge(month, count, MonthlyCount::add));
-        topicRows.add(
+        agencyTopics.add(
             new EcfrRepository.AgencyTopicRow(
                 agency.slug(),
                 ref.key(),
@@ -103,7 +104,13 @@ class ImportService {
                 state.lastViewedAt()));
       }
 
+      if (agencyTopics.isEmpty()) {
+        log.warn("Skipping agency {} because no topics could be imported", agency.slug());
+        continue;
+      }
+
       var checksum = XmlMetrics.sha256(String.join("\n", checksums.stream().sorted().toList()));
+      topicRows.addAll(agencyTopics);
       agencyRows.add(
           new EcfrRepository.AgencyRow(
               agency.slug(),
@@ -111,7 +118,7 @@ class ImportService {
               agency.shortName(),
               wordCount,
               checksum,
-              topicRows.stream().filter(topic -> topic.agencySlug().equals(agency.slug())).map(EcfrRepository.AgencyTopicRow::topicKey).distinct().toList().size(),
+              agencyTopics.stream().map(EcfrRepository.AgencyTopicRow::topicKey).distinct().toList().size(),
               latestAmendedOn));
       history.entrySet().stream()
           .sorted(Map.Entry.comparingByKey())
@@ -120,6 +127,10 @@ class ImportService {
                   monthRows.add(
                       new EcfrRepository.AgencyChangeRow(
                           agency.slug(), entry.getKey(), entry.getValue().amendmentCount(), entry.getValue().removalCount())));
+    }
+
+    if (!agenciesToImport.isEmpty() && agencyRows.isEmpty()) {
+      throw new IllegalStateException("No agencies could be imported from eCFR");
     }
 
     if (replaceAll) {

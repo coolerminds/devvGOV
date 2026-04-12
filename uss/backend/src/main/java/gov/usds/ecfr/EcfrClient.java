@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 @Component
 class EcfrClient {
   private static final String BASE_URL = "https://www.ecfr.gov";
+  private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
   private final HttpClient httpClient =
       HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).followRedirects(HttpClient.Redirect.NORMAL).build();
@@ -54,7 +55,12 @@ class EcfrClient {
 
   private <T> T getJson(String path, Class<T> type) {
     try {
-      var request = HttpRequest.newBuilder(URI.create(BASE_URL + path)).header("Accept", "application/json").GET().build();
+      var request =
+          HttpRequest.newBuilder(URI.create(BASE_URL + path))
+              .timeout(REQUEST_TIMEOUT)
+              .header("Accept", "application/json")
+              .GET()
+              .build();
       var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
       if (response.statusCode() >= 400) {
         throw new IllegalStateException("eCFR request failed for %s with %s".formatted(path, response.statusCode()));
@@ -70,7 +76,12 @@ class EcfrClient {
 
   private String getText(String path) {
     try {
-      var request = HttpRequest.newBuilder(URI.create(BASE_URL + path)).header("Accept", "application/xml").GET().build();
+      var request =
+          HttpRequest.newBuilder(URI.create(BASE_URL + path))
+              .timeout(REQUEST_TIMEOUT)
+              .header("Accept", "application/xml")
+              .GET()
+              .build();
       var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
       if (response.statusCode() >= 400) {
         throw new IllegalStateException("eCFR request failed for %s with %s".formatted(path, response.statusCode()));

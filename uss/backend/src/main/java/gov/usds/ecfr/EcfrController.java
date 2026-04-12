@@ -54,12 +54,20 @@ class EcfrController {
   @PostMapping("/admin/import")
   @ResponseStatus(HttpStatus.ACCEPTED)
   ImportSummary reimport() {
-    return importService.importAll();
+    try {
+      return importService.importAll();
+    } catch (IllegalStateException exception) {
+      throw upstreamFailure("reimport eCFR data", exception);
+    }
   }
 
   @GetMapping("/admin/agencies")
   List<AgencyCatalogEntry> availableAgencies() {
-    return importService.availableAgencies();
+    try {
+      return importService.availableAgencies();
+    } catch (IllegalStateException exception) {
+      throw upstreamFailure("load the eCFR agency catalog", exception);
+    }
   }
 
   @PostMapping("/admin/agencies/import")
@@ -69,6 +77,12 @@ class EcfrController {
       return importService.importSelected(request == null ? List.of() : request.slugs());
     } catch (IllegalArgumentException exception) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage());
+    } catch (IllegalStateException exception) {
+      throw upstreamFailure("import the selected agencies", exception);
     }
+  }
+
+  private ResponseStatusException upstreamFailure(String action, IllegalStateException exception) {
+    return new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Unable to %s right now".formatted(action), exception);
   }
 }

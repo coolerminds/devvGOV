@@ -52,6 +52,9 @@ class EcfrControllerIntegrationTest {
     private Map<Integer, LocalDate> titleDates = Map.of();
     private Map<String, String> currentXml = Map.of();
     private Map<String, List<VersionEntry>> versions = Map.of();
+    private Map<String, RuntimeException> currentXmlFailures = Map.of();
+    private RuntimeException agenciesFailure;
+    private RuntimeException titleDatesFailure;
 
     TestEcfrClient(ObjectMapper objectMapper) {
       super(objectMapper);
@@ -66,20 +69,45 @@ class EcfrControllerIntegrationTest {
       this.titleDates = titleDates;
       this.currentXml = currentXml;
       this.versions = versions;
+      this.currentXmlFailures = Map.of();
+      this.agenciesFailure = null;
+      this.titleDatesFailure = null;
+    }
+
+    void failCurrentXml(String topicKey, RuntimeException exception) {
+      this.currentXmlFailures = Map.of(topicKey, exception);
+    }
+
+    void failAgencies(RuntimeException exception) {
+      this.agenciesFailure = exception;
+    }
+
+    void failTitleDates(RuntimeException exception) {
+      this.titleDatesFailure = exception;
     }
 
     @Override
     List<EcfrAgency> agencies() {
+      if (agenciesFailure != null) {
+        throw agenciesFailure;
+      }
       return agencies;
     }
 
     @Override
     Map<Integer, LocalDate> titleDates() {
+      if (titleDatesFailure != null) {
+        throw titleDatesFailure;
+      }
       return titleDates;
     }
 
     @Override
     String currentXml(TopicRef ref, LocalDate onDate) {
+      var failure = currentXmlFailures.get(ref.key());
+      if (failure != null) {
+        throw failure;
+      }
       return currentXml.get(ref.key());
     }
 
@@ -179,5 +207,29 @@ class EcfrControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.agency.name", is("Environmental Protection Agency")))
         .andExpect(jsonPath("$.topics", hasSize(1)));
+  }
+
+  @Test
+  void targetedImportReturnsBadGatewayWhenSelectedAgencyCannotImportAnyTopics() throws Exception {
+    client.failCurrentXml("t=40|c=I|st=|sc=|p=", new IllegalStateException("timed out"));
+
+    mockMvc
+        .perform(post("/api/admin/agencies/import").contentType("application/json").content("""
+            {"slugs":["environmental-protection-agency"]}
+            """))
+        .andExpect(status().isBadGateway());
+
+    mockMvc
+        .perform(get("/api/agencies"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$", hasSize(1)))
+        .andExpect(jsonPath("$[0].slug", is("agriculture-department")));
+  }
+
+  @Test
+  void availableAgenciesReturnsBadGatewayWhenCatalogLookupFails() throws Exception {
+    client.failAgencies(new IllegalStateException("catalog unavailable"));
+
+    mockMvc.perform(get("/api/admin/agencies")).andExpect(status().isBadGateway());
   }
 }
