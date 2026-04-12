@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: gov.usds.ecfr.EcfrControllerIntegrationTest
 -------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.519 s -- in gov.usds.ecfr.EcfrControllerIntegrationTest
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.474 s -- in gov.usds.ecfr.EcfrControllerIntegrationTest

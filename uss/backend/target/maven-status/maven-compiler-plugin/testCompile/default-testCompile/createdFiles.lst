@@ -1,3 +1,5 @@
+gov/usds/ecfr/EcfrControllerIntegrationTest$TestConfig.class
 gov/usds/ecfr/ImportServiceTest.class
+gov/usds/ecfr/EcfrControllerIntegrationTest$TestEcfrClient.class
 gov/usds/ecfr/XmlMetricsTest.class
 gov/usds/ecfr/EcfrControllerIntegrationTest.class

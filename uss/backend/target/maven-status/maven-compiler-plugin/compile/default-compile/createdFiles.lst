@@ -24,3 +24,5 @@ gov/usds/ecfr/EcfrClient$VersionEntry.class
 gov/usds/ecfr/TopicRef.class
 gov/usds/ecfr/EcfrClient.class
 gov/usds/ecfr/ImportService.class
+gov/usds/ecfr/AgencyImportRequest.class
+gov/usds/ecfr/AgencyCatalogEntry.class

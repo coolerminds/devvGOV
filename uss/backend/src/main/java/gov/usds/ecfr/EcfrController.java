@@ -3,6 +3,7 @@ package gov.usds.ecfr;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -54,5 +55,20 @@ class EcfrController {
   @ResponseStatus(HttpStatus.ACCEPTED)
   ImportSummary reimport() {
     return importService.importAll();
+  }
+
+  @GetMapping("/admin/agencies")
+  List<AgencyCatalogEntry> availableAgencies() {
+    return importService.availableAgencies();
+  }
+
+  @PostMapping("/admin/agencies/import")
+  @ResponseStatus(HttpStatus.ACCEPTED)
+  ImportSummary importAgencies(@RequestBody AgencyImportRequest request) {
+    try {
+      return importService.importSelected(request == null ? List.of() : request.slugs());
+    } catch (IllegalArgumentException exception) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
   }
 }
