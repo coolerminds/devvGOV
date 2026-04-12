@@ -6,6 +6,7 @@ gov/usds/ecfr/EcfrRepository$AgencyTopicRow.class
 gov/usds/ecfr/AgencySummary.class
 gov/usds/ecfr/EcfrClient$TitleMeta.class
 gov/usds/ecfr/AgencyDetail.class
+gov/usds/ecfr/XmlMetrics$Summary.class
 gov/usds/ecfr/XmlMetrics$Result.class
 gov/usds/ecfr/EcfrClient$TitlesResponse.class
 gov/usds/ecfr/EcfrController.class

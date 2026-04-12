@@ -13,17 +13,17 @@ import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 
 final class XmlMetrics {
+  private static final int PREVIEW_LENGTH = 360;
+  private static final int PREVIEW_CONTENT_LENGTH = PREVIEW_LENGTH - 3;
+
   private XmlMetrics() {}
 
   static Result analyze(String xml) {
     var document = Jsoup.parse(xml, "", Parser.xmlParser());
     var canonical = canonicalize(document);
-    var normalized = Jsoup.parse(canonical, "", Parser.xmlParser());
-    var visibleText = normalized.select("HEAD,P,FP,LI,HD1,HD2,HD3,HD4,HD5,HD6,ENTRY").eachText();
-    var text = String.join(" ", visibleText.isEmpty() ? java.util.List.of(normalized.text()) : visibleText).replace('\u00A0', ' ').replaceAll("\\s+", " ").trim();
-    var preview = text.length() > 360 ? text.substring(0, 357) + "..." : text;
-    var wordCount = text.isBlank() ? 0 : text.split("\\s+").length;
-    return new Result(wordCount, preview, sha256(canonical));
+    var visibleText = document.select("HEAD,P,FP,LI,HD1,HD2,HD3,HD4,HD5,HD6,ENTRY").eachText();
+    var summary = summarize(visibleText.isEmpty() ? java.util.List.of(document.text()) : visibleText);
+    return new Result(summary.wordCount(), summary.preview(), sha256(canonical));
   }
 
   private static String canonicalize(Document document) {
@@ -66,6 +66,59 @@ final class XmlMetrics {
     return value.replace('\u00A0', ' ').replaceAll("\\s+", " ").trim();
   }
 
+  private static Summary summarize(Iterable<String> segments) {
+    var preview = new StringBuilder();
+    var wordCount = 0;
+    var truncated = false;
+
+    for (var segment : segments) {
+      var normalized = normalize(segment);
+      if (normalized.isBlank()) {
+        continue;
+      }
+
+      wordCount += countWords(normalized);
+      if (truncated) {
+        continue;
+      }
+
+      var chunk = preview.isEmpty() ? normalized : " " + normalized;
+      var remaining = PREVIEW_CONTENT_LENGTH - preview.length();
+      if (remaining <= 0) {
+        truncated = true;
+        continue;
+      }
+      if (chunk.length() <= remaining) {
+        preview.append(chunk);
+        continue;
+      }
+      preview.append(chunk, 0, remaining);
+      truncated = true;
+    }
+
+    var previewText = preview.toString().trim();
+    if (truncated && !previewText.isEmpty()) {
+      previewText += "...";
+    }
+    return new Summary(wordCount, previewText);
+  }
+
+  private static int countWords(String value) {
+    var count = 0;
+    var insideWord = false;
+    for (var index = 0; index < value.length(); index += 1) {
+      if (Character.isWhitespace(value.charAt(index))) {
+        insideWord = false;
+        continue;
+      }
+      if (!insideWord) {
+        count += 1;
+        insideWord = true;
+      }
+    }
+    return count;
+  }
+
   static String sha256(String value) {
     try {
       var digest = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
@@ -78,6 +131,8 @@ final class XmlMetrics {
       throw new IllegalStateException(exception);
     }
   }
+
+  record Summary(int wordCount, String preview) {}
 
   record Result(int wordCount, String preview, String checksum) {}
 }
