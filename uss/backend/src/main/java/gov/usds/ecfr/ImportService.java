@@ -47,6 +47,10 @@ class ImportService {
     if (requested.isEmpty()) {
       throw new IllegalArgumentException("No agencies were selected");
     }
+    var imported = repository.findAgencySlugs();
+    if (imported.containsAll(requested)) {
+      return new ImportSummary(0, 0, 0);
+    }
 
     var selected = client.agencies().stream().filter(agency -> requested.contains(agency.slug())).toList();
     if (selected.size() != requested.size()) {
@@ -55,7 +59,7 @@ class ImportService {
       throw new IllegalArgumentException("Unknown agencies: " + String.join(", ", missing));
     }
 
-    return importAgencies(selected, false);
+    return importAgencies(selected.stream().filter(agency -> !imported.contains(agency.slug())).toList(), false);
   }
 
   private ImportSummary importAgencies(List<EcfrAgency> agenciesToImport, boolean replaceAll) {

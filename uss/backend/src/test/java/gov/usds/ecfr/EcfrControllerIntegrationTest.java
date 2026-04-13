@@ -210,6 +210,20 @@ class EcfrControllerIntegrationTest {
   }
 
   @Test
+  void targetedImportSkipsAgenciesAlreadyInWorkspace() throws Exception {
+    client.failAgencies(new IllegalStateException("catalog unavailable"));
+
+    mockMvc
+        .perform(post("/api/admin/agencies/import").contentType("application/json").content("""
+            {"slugs":["agriculture-department"]}
+            """))
+        .andExpect(status().isAccepted())
+        .andExpect(jsonPath("$.agencies", is(0)))
+        .andExpect(jsonPath("$.topics", is(0)))
+        .andExpect(jsonPath("$.failures", is(0)));
+  }
+
+  @Test
   void targetedImportReturnsBadGatewayWhenSelectedAgencyCannotImportAnyTopics() throws Exception {
     client.failCurrentXml("t=40|c=I|st=|sc=|p=", new IllegalStateException("timed out"));
 

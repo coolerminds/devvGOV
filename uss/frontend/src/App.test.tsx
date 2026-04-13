@@ -112,14 +112,14 @@ test("renders dashboard, opens topics, and imports agencies through new analysis
 
   expect(await screen.findByRole("heading", { name: "Advanced Regulatory Dashboard" })).toBeInTheDocument();
   expect(await screen.findByText("Topics loaded")).toBeInTheDocument();
-  expect(screen.queryByText("Add or refresh agencies")).not.toBeInTheDocument();
+  expect(screen.queryByText("Add agencies to this workspace")).not.toBeInTheDocument();
 
   const topicPreview = (await screen.findAllByText("Current topic preview text."))[0];
   fireEvent.click(topicPreview.closest("button") as HTMLButtonElement);
   await waitFor(() => expect(screen.getByText("3 live views")).toBeInTheDocument());
 
   fireEvent.click(screen.getByRole("button", { name: /New analysis/i }));
-  expect(await screen.findByRole("dialog", { name: /Add or refresh agencies/i })).toBeInTheDocument();
+  expect(await screen.findByRole("dialog", { name: /Add agencies to this workspace/i })).toBeInTheDocument();
 
   fireEvent.change(screen.getByPlaceholderText("Search by agency, short name, or slug"), {
     target: { value: "environment" },
@@ -137,7 +137,7 @@ test("renders dashboard, opens topics, and imports agencies through new analysis
   }
   completeImport(new Response(JSON.stringify({ agencies: 1, topics: 1 })));
 
-  await waitFor(() => expect(screen.queryByRole("dialog", { name: /Add or refresh agencies/i })).not.toBeInTheDocument());
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: /Add agencies to this workspace/i })).not.toBeInTheDocument());
   await waitFor(() => expect(screen.queryByRole("status", { name: /Importing selected agencies/i })).not.toBeInTheDocument());
   expect(await screen.findAllByRole("button", { name: /Environmental Protection Agency/i })).not.toHaveLength(0);
 });

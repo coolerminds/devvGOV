@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.net.http.HttpTimeoutException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -15,6 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -61,37 +64,52 @@ class EcfrClient {
               .header("Accept", "application/json")
               .GET()
               .build();
-      var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      var response = send(request, HttpResponse.BodyHandlers.ofString(), "JSON", path);
       if (response.statusCode() >= 400) {
         throw new IllegalStateException("eCFR request failed for %s with %s".formatted(path, response.statusCode()));
       }
       return objectMapper.readValue(response.body(), type);
-    } catch (InterruptedException exception) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("eCFR JSON request interrupted for " + path, exception);
     } catch (IOException exception) {
       throw new IllegalStateException("eCFR JSON request failed for " + path, exception);
     }
   }
 
   private String getText(String path) {
+    var request =
+        HttpRequest.newBuilder(URI.create(BASE_URL + path))
+            .timeout(REQUEST_TIMEOUT)
+            .header("Accept", "application/xml")
+            .GET()
+            .build();
+    var response = send(request, HttpResponse.BodyHandlers.ofString(), "XML", path);
+    if (response.statusCode() >= 400) {
+      throw new IllegalStateException("eCFR request failed for %s with %s".formatted(path, response.statusCode()));
+    }
+    return response.body();
+  }
+
+  private <T> HttpResponse<T> send(HttpRequest request, HttpResponse.BodyHandler<T> bodyHandler, String requestType, String path) {
+    var response = httpClient.sendAsync(request, bodyHandler);
     try {
-      var request =
-          HttpRequest.newBuilder(URI.create(BASE_URL + path))
-              .timeout(REQUEST_TIMEOUT)
-              .header("Accept", "application/xml")
-              .GET()
-              .build();
-      var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-      if (response.statusCode() >= 400) {
-        throw new IllegalStateException("eCFR request failed for %s with %s".formatted(path, response.statusCode()));
-      }
-      return response.body();
+      return response.get(REQUEST_TIMEOUT.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
     } catch (InterruptedException exception) {
       Thread.currentThread().interrupt();
-      throw new IllegalStateException("eCFR XML request interrupted for " + path, exception);
-    } catch (IOException exception) {
-      throw new IllegalStateException("eCFR XML request failed for " + path, exception);
+      throw new IllegalStateException("eCFR %s request interrupted for %s".formatted(requestType, path), exception);
+    } catch (TimeoutException exception) {
+      response.cancel(true);
+      throw new IllegalStateException("eCFR %s request timed out for %s".formatted(requestType, path), exception);
+    } catch (ExecutionException exception) {
+      var cause = exception.getCause();
+      if (cause instanceof HttpTimeoutException timeoutException) {
+        throw new IllegalStateException("eCFR %s request timed out for %s".formatted(requestType, path), timeoutException);
+      }
+      if (cause instanceof RuntimeException runtimeException) {
+        throw runtimeException;
+      }
+      if (cause instanceof Error error) {
+        throw error;
+      }
+      throw new IllegalStateException("eCFR %s request failed for %s".formatted(requestType, path), cause);
     }
   }
 

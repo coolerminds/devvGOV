@@ -344,8 +344,8 @@ function NewAnalysisModal({
       return left.candidate.name.localeCompare(right.candidate.name);
     })
     .map((entry) => entry.candidate);
-  const visibleSlugs = visibleCandidates.map((candidate) => candidate.slug);
-  const allVisibleSelected = visibleSlugs.length > 0 && visibleSlugs.every((slug) => selectedSlugs.includes(slug));
+  const visibleSelectableSlugs = visibleCandidates.filter((candidate) => !candidate.imported).map((candidate) => candidate.slug);
+  const allVisibleSelected = visibleSelectableSlugs.length > 0 && visibleSelectableSlugs.every((slug) => selectedSlugs.includes(slug));
   const selectedEntries = selectedSlugs
     .map((slug) => candidates.find((candidate) => candidate.slug === slug))
     .filter((candidate): candidate is AgencyCatalogEntry => Boolean(candidate));
@@ -358,8 +358,8 @@ function NewAnalysisModal({
         <div className="modal-header">
           <div>
             <p className="panel-kicker">New analysis</p>
-            <h2 id="new-analysis-title">Add or refresh agencies</h2>
-            <p className="panel-copy">Search the live eCFR agency catalog, select multiple agencies, and import them into this workspace. Imports can take a moment.</p>
+            <h2 id="new-analysis-title">Add agencies to this workspace</h2>
+            <p className="panel-copy">Search the live eCFR agency catalog, select multiple agencies that are not already loaded here, and import them into this workspace.</p>
           </div>
           <button className="modal-close" onClick={onClose} type="button" aria-label="Close new analysis" disabled={importing}>
             Close
@@ -377,7 +377,12 @@ function NewAnalysisModal({
               <span>{selectedSlugs.length} selected</span>
             </div>
             <div className="modal-batch-actions">
-              <button className="text-action" onClick={() => onSelectVisible(visibleSlugs)} type="button" disabled={importing || !visibleCandidates.length || allVisibleSelected}>
+              <button
+                className="text-action"
+                onClick={() => onSelectVisible(visibleSelectableSlugs)}
+                type="button"
+                disabled={importing || !visibleSelectableSlugs.length || allVisibleSelected}
+              >
                 Select visible
               </button>
               <button className="text-action" onClick={onClearSelection} type="button" disabled={importing || !selectedSlugs.length}>
@@ -404,7 +409,13 @@ function NewAnalysisModal({
             visibleCandidates.map((candidate) => {
               const selected = selectedSlugs.includes(candidate.slug);
               return (
-                <button className={`candidate-row ${selected ? "selected" : ""}`} key={candidate.slug} onClick={() => onToggle(candidate.slug)} type="button" disabled={importing}>
+                <button
+                  className={`candidate-row ${selected ? "selected" : ""}`}
+                  key={candidate.slug}
+                  onClick={() => onToggle(candidate.slug)}
+                  type="button"
+                  disabled={importing || candidate.imported}
+                >
                   <div className="candidate-copy">
                     <strong>{candidate.name}</strong>
                     <small>{candidate.shortName ? `${candidate.shortName} · ${candidate.slug}` : candidate.slug}</small>
@@ -413,7 +424,7 @@ function NewAnalysisModal({
                     <span className={`candidate-badge ${candidate.imported ? "imported" : "available"}`}>
                       {candidate.imported ? "Imported" : "Available"}
                     </span>
-                    <span className="candidate-check">{selected ? "Selected" : candidate.imported ? "Refresh" : "Add"}</span>
+                    <span className="candidate-check">{candidate.imported ? "In workspace" : selected ? "Selected" : "Add"}</span>
                   </div>
                 </button>
               );
@@ -645,11 +656,15 @@ export default function App() {
   }
 
   function toggleAnalysisSelection(slug: string) {
+    if (catalog.find((agency) => agency.slug === slug)?.imported) {
+      return;
+    }
     setAnalysisSelection((current) => (current.includes(slug) ? current.filter((value) => value !== slug) : [...current, slug]));
   }
 
   function selectVisibleAgencies(slugs: string[]) {
-    setAnalysisSelection((current) => [...new Set([...current, ...slugs])]);
+    const availableSlugs = slugs.filter((slug) => !catalog.find((agency) => agency.slug === slug)?.imported);
+    setAnalysisSelection((current) => [...new Set([...current, ...availableSlugs])]);
   }
 
   async function submitAnalysisSelection() {

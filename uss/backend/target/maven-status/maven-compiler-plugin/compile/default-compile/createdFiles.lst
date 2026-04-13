@@ -12,6 +12,7 @@ gov/usds/ecfr/EcfrClient$TitlesResponse.class
 gov/usds/ecfr/EcfrController.class
 gov/usds/ecfr/EcfrClient$VersionsResponse.class
 gov/usds/ecfr/EcfrRepository.class
+gov/usds/ecfr/XmlMetrics$SummaryBuilder.class
 gov/usds/ecfr/MonthlyCount.class
 gov/usds/ecfr/AgencyTopic.class
 gov/usds/ecfr/ViewState.class
@@ -22,6 +23,7 @@ gov/usds/ecfr/ImportService$TopicSnapshot.class
 gov/usds/ecfr/EcfrClient$EcfrAgency.class
 gov/usds/ecfr/EcfrRepository$AgencyChangeRow.class
 gov/usds/ecfr/EcfrClient$VersionEntry.class
+gov/usds/ecfr/XmlMetrics$1.class
 gov/usds/ecfr/TopicRef.class
 gov/usds/ecfr/EcfrClient.class
 gov/usds/ecfr/ImportService.class
